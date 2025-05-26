@@ -5,41 +5,51 @@ import QRCode from "qrcode";
 import stream from "stream"; // Diperlukan untuk mengubah Buffer menjadi ReadableStream
 
 // Fungsi untuk otentikasi dan mendapatkan instance drive API
+// Fungsi ini sudah terlihat benar dari kode Anda sebelumnya.
 async function getDriveService() {
   let credentials;
   try {
-    // Coba parse dari GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT dulu
     if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT) {
       credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT);
     } else {
-      // Fallback ke path file jika variabel di atas tidak ada (untuk development lokal jika masih pakai path)
-      // Namun, untuk Vercel, GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT harus ada.
       console.warn(
-        "GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT tidak ditemukan, mencoba keyFile dari GOOGLE_APPLICATION_CREDENTIALS (ini mungkin tidak bekerja di Vercel jika file tidak ada)."
+        "GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT tidak ditemukan. Jika ini lokal, pastikan GOOGLE_APPLICATION_CREDENTIALS (path file) diatur jika diperlukan, atau set GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT untuk konsistensi. Untuk Vercel, GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT wajib."
       );
-      // Jika Anda hanya mau pakai GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT di Vercel, Anda bisa hapus bagian keyFile di bawah ini untuk production.
     }
   } catch (e) {
     console.error("Gagal mem-parsing GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT:", e);
     throw new Error("Kredensial Service Account JSON tidak valid.");
   }
 
-  const auth = new google.auth.GoogleAuth({
-    // Jika credentials berhasil diparsing dari environment variable:
-    credentials: credentials, // Gunakan credentials yang sudah diparsing
-    // keyFile: credentials ? undefined : process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  const authOptions = {
     scopes: ["https://www.googleapis.com/auth/drive"],
-  });
+  };
 
-  // Jika Anda hanya menggunakan `credentials` dari JSON string untuk Vercel:
-  if (!credentials && process.env.VERCEL_ENV === "production") {
-    // VERCEL_ENV akan bernilai "production" di Vercel
+  if (credentials) {
+    authOptions.credentials = credentials;
+  } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    // Fallback ke keyFile HANYA jika credentials dari JSON_CONTENT tidak ada
+    // dan GOOGLE_APPLICATION_CREDENTIALS (path file) diset (biasanya untuk lokal)
+    authOptions.keyFile = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    console.log(
+      "Menggunakan keyFile dari GOOGLE_APPLICATION_CREDENTIALS karena GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT tidak diset/kosong."
+    );
+  }
+
+  // Pengecekan penting untuk Vercel production
+  if (!authOptions.credentials && !authOptions.keyFile && process.env.VERCEL_ENV === "production") {
     console.error(
-      "Kredensial Google Service Account JSON (GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT) wajib ada di environment Vercel production."
+      "Kredensial Google Service Account (via GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT atau GOOGLE_APPLICATION_CREDENTIALS) wajib ada di environment Vercel production."
     );
     throw new Error("Konfigurasi kredensial server tidak lengkap untuk production.");
   }
+  // Pengecekan umum jika tidak ada kredensial sama sekali
+  if (!authOptions.credentials && !authOptions.keyFile) {
+    console.error("Tidak ada metode kredensial (JSON_CONTENT atau APPLICATION_CREDENTIALS) yang ditemukan.");
+    throw new Error("Kredensial Google Service Account tidak ditemukan.");
+  }
 
+  const auth = new google.auth.GoogleAuth(authOptions);
   const authClient = await auth.getClient();
   return google.drive({ version: "v3", auth: authClient });
 }
@@ -52,20 +62,24 @@ function base64ToBuffer(dataUrl) {
 
 export async function POST(request) {
   try {
-    const data = await request.json();
-    const { photos, selectedTemplate } = data;
-
-    if (!process.env.GOOGLE_APPLICATION_CREDENTIALS && !process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-      console.error("API Route Error: Kredensial Google Service Account tidak dikonfigurasi di environment variables.");
+    // Pengecekan awal apakah salah satu metode kredensial diset di environment variables
+    // Ini adalah pengecekan umum, getDriveService akan melakukan validasi lebih detail.
+    if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      console.error(
+        "API Route Error: Tidak ada environment variable kredensial Google yang diset (GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT atau GOOGLE_APPLICATION_CREDENTIALS)."
+      );
       return NextResponse.json({ message: "Error: Konfigurasi server tidak lengkap (kredensial)." }, { status: 500 });
     }
+
+    const data = await request.json();
+    const { photos, selectedTemplate } = data;
 
     if (!photos || !Array.isArray(photos) || photos.length === 0) {
       return NextResponse.json({ message: "Error: Foto tidak ditemukan atau format salah." }, { status: 400 });
     }
     console.log(`[API] Menerima ${photos.length} foto. Template: ${selectedTemplate}`);
 
-    const drive = await getDriveService();
+    const drive = await getDriveService(); // getDriveService akan menangani detail otentikasi
 
     // 1. Buat folder baru yang unik di Google Drive
     const folderName = `Photobox Session - ${new Date().toISOString()} - Template ${selectedTemplate}`;
@@ -73,17 +87,17 @@ export async function POST(request) {
       name: folderName,
       mimeType: "application/vnd.google-apps.folder",
       // Anda bisa menentukan parent folder di sini jika mau:
-      // parents: ['ID_FOLDER_INDUK_ANDA']
+      // parents: ['ID_FOLDER_INDUK_ANDA_DI_SINI']
     };
     const folder = await drive.files.create({
       resource: folderMetadata,
-      fields: "id, webViewLink", // Ambil id dan webViewLink
+      fields: "id, webViewLink",
     });
     const folderId = folder.data.id;
-    const gdriveFolderWebViewLink = folder.data.webViewLink; // Link untuk dilihat di browser Drive
+    const gdriveFolderWebViewLink = folder.data.webViewLink;
     console.log(`[API] Folder dibuat di Google Drive. ID: ${folderId}, Link: ${gdriveFolderWebViewLink}`);
 
-    // 2. Atur izin folder agar bisa diakses publik (siapa saja dengan link bisa melihat)
+    // 2. Atur izin folder
     await drive.permissions.create({
       fileId: folderId,
       requestBody: {
@@ -93,42 +107,31 @@ export async function POST(request) {
     });
     console.log(`[API] Izin folder ${folderId} diatur ke 'reader' untuk 'anyone'.`);
 
-    // 3. Upload setiap foto ke folder tersebut
+    // 3. Upload setiap foto
     const uploadedPhotoLinks = [];
     for (let i = 0; i < photos.length; i++) {
       const photoDataUrl = photos[i];
       const photoBuffer = base64ToBuffer(photoDataUrl);
       const photoName = `photo_${i + 1}.jpg`;
 
-      // Buat ReadableStream dari Buffer
       const bufferStream = new stream.PassThrough();
       bufferStream.end(photoBuffer);
 
-      const fileMetadata = {
-        name: photoName,
-        parents: [folderId],
-      };
-      const media = {
-        mimeType: "image/jpeg",
-        body: bufferStream, // Gunakan stream
-      };
+      const fileMetadata = { name: photoName, parents: [folderId] };
+      const media = { mimeType: "image/jpeg", body: bufferStream };
 
       const uploadedFile = await drive.files.create({
         resource: fileMetadata,
         media: media,
-        fields: "id, webViewLink, webContentLink", // webContentLink untuk direct download jika memungkinkan
+        fields: "id, webViewLink, webContentLink",
       });
       console.log(
         `[API] Foto ${photoName} diupload. ID: ${uploadedFile.data.id}, Link Konten: ${uploadedFile.data.webContentLink}`
       );
-      uploadedPhotoLinks.push(uploadedFile.data.webViewLink); // atau webContentLink jika ingin direct file
+      uploadedPhotoLinks.push(uploadedFile.data.webViewLink);
     }
 
-    // Kita akan menggunakan link folder utama untuk QR code
-    const urlForQrCode = gdriveFolderWebViewLink; // Link ke folder
-
-    // 4. Generate QR Code dari URL folder Google Drive
-    // Menghasilkan QR code sebagai Data URL (base64 string)
+    const urlForQrCode = gdriveFolderWebViewLink;
     const qrCodeDataUrl = await QRCode.toDataURL(urlForQrCode, { errorCorrectionLevel: "H" });
     console.log(`[API] QR Code dibuat untuk URL: ${urlForQrCode}`);
 
@@ -136,18 +139,17 @@ export async function POST(request) {
       {
         message: "Foto berhasil diupload dan QR code dibuat!",
         gdriveFolderUrl: urlForQrCode,
-        qrCodeUrl: qrCodeDataUrl, // Kirim data URL QR code
-        uploadedPhotoLinks: uploadedPhotoLinks, // Opsional: kirim link tiap foto juga
+        qrCodeUrl: qrCodeDataUrl,
+        uploadedPhotoLinks: uploadedPhotoLinks,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("[API] Error:", error.message, error.stack);
+    console.error("[API] Error di fungsi POST:", error.message, error.stack);
     let errorMessage = `Error internal server: ${error.message}`;
     if (error.response && error.response.data && error.response.data.error) {
       errorMessage = `Google API Error: ${error.response.data.error.message} (Code: ${error.response.data.error.code})`;
     } else if (error.errors && error.errors.length > 0) {
-      // Error dari googleapis client
       errorMessage = `Google API Error: ${error.errors[0].message}`;
     }
     return NextResponse.json({ message: errorMessage }, { status: 500 });
