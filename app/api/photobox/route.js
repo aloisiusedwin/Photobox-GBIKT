@@ -6,13 +6,39 @@ import stream from "stream"; // Diperlukan untuk mengubah Buffer menjadi Readabl
 
 // Fungsi untuk otentikasi dan mendapatkan instance drive API
 async function getDriveService() {
+  let credentials;
+  try {
+    // Coba parse dari GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT dulu
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT) {
+      credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT);
+    } else {
+      // Fallback ke path file jika variabel di atas tidak ada (untuk development lokal jika masih pakai path)
+      // Namun, untuk Vercel, GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT harus ada.
+      console.warn(
+        "GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT tidak ditemukan, mencoba keyFile dari GOOGLE_APPLICATION_CREDENTIALS (ini mungkin tidak bekerja di Vercel jika file tidak ada)."
+      );
+      // Jika Anda hanya mau pakai GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT di Vercel, Anda bisa hapus bagian keyFile di bawah ini untuk production.
+    }
+  } catch (e) {
+    console.error("Gagal mem-parsing GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT:", e);
+    throw new Error("Kredensial Service Account JSON tidak valid.");
+  }
+
   const auth = new google.auth.GoogleAuth({
-    // Jika GOOGLE_APPLICATION_CREDENTIALS adalah path ke file JSON:
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    // Jika GOOGLE_SERVICE_ACCOUNT_JSON berisi string JSON:
-    // credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-    scopes: ["https://www.googleapis.com/auth/drive"], // Scope penuh untuk Drive
+    // Jika credentials berhasil diparsing dari environment variable:
+    credentials: credentials, // Gunakan credentials yang sudah diparsing
+    // keyFile: credentials ? undefined : process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    scopes: ["https://www.googleapis.com/auth/drive"],
   });
+
+  // Jika Anda hanya menggunakan `credentials` dari JSON string untuk Vercel:
+  if (!credentials && process.env.VERCEL_ENV === "production") {
+    // VERCEL_ENV akan bernilai "production" di Vercel
+    console.error(
+      "Kredensial Google Service Account JSON (GOOGLE_SERVICE_ACCOUNT_JSON_CONTENT) wajib ada di environment Vercel production."
+    );
+    throw new Error("Konfigurasi kredensial server tidak lengkap untuk production.");
+  }
 
   const authClient = await auth.getClient();
   return google.drive({ version: "v3", auth: authClient });
