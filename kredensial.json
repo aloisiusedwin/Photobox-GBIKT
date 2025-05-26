@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "photobox-sil",
+  "private_key_id": "02df35de6f7431120ea86b6cc113ecaabc15f9a3",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCXvHbbzP5gc8gz\nyw/WC3xjlJioemimGWWZjNf+frPLCfFkCge8CrbTUhXQGFxBsmi2BkcZorvQOCrz\ndfwSjWJS7XIljqBPQZ8qw6fMmxceHVoUX4/WFLwdWYygmM+y908a72x+cwy9zFPj\n+CbkHj09DzmW7B0fVgxfyC+tAb04EwLa1LCz0nJE9X6Wo2lXemmwX/S0NZ9nV+gx\nN07BPDjbNq01OaXhipo/opV+zZ8eqnS4j0KQMyQeQbGFubQoyJ9SE1/asBuOGFzk\nzFhriFX3wFm4taQtR3F7uVtD8DKhZRNPNoYk8l4SFNaXYaWzXz7ThwXevrjQ07u5\nNw6EdUS9AgMBAAECggEAIPYfScMftRshr+KaJ5CqLkWe3eZtajuVHwSB/TZP3zjj\nN6yYHoijS4eG1oQcMmdLqNL3SgHYU7SH3AhSwEL3S3VqOO9hMqZaKaOEBYXhQTj2\nEvvpVoN9k9CapF5drA5eIEdHZbafW3GR/bEv3ZkWC3gNthPHhcGfAYWOmcIJdS8S\nbDIKoU/Iqark+l9Lpe1TNFHS4oJRm9yeKqPnuLZ/0pXDlVt5lL2Ghcffrn90xUwb\nLI7wKUeytZCqdPwV1EUFg8AoSRjmX0u2/b2qXDObY0KeIOSwYBXA3YNzwvoAXfyD\nWWPK1yT8myHqqcqghAprZa/wvx/GxJL5FGIo+p/OLwKBgQDFvj6P9Xr9uHFRaJrm\no3JwgHbgUT3wN0O2Hf15JRAWKTm3EuWdzj+xqijpllzvbsaFbAsxlEJyHXPJw4py\nAuuSyCcTYMplBfAQgcVxXTb37MpFFoikwx7NYYU2ikQ+weocpAApOoHw9OSJ4JM+\nLSR/DEcD5opscxMvAn45R4zzswKBgQDEcGIJjvXy2JHnMHS1I3vWc9GcCVLnlb6n\nrCJVoWIZRW33SrAL2QLePR9yoPfsdiTATyFXbKvsbkWMPJiQY9T6nWdEg7roVFBb\nZMAbFs5QNUXOOZiWfnwrBm1EZIymHDm6XjqlwwRQctqw9/xQ1kuXINIvI5glH5D1\nKhucOuNtzwKBgGHBtk4W7pGl8Cdtzj49CWNCrwIgR72MpKXQ17FfOD+sa8LszaUh\nBG4BkC5CTnlzyyLEkhgVkm+1zbsuNzA771fmKSM0U3pz4AVZElID4hvY7PoQtMa3\nS2//SQr4edqIpQM5tHatXPXRK3ZaFpDDYmqImEb+XupUTWSNF/ebPrxvAoGAMhbR\n+Mv6TOUKNyA08idNIX7A2P/Lov+c8NZEnv8aq4T3qFHkF/FK+O4vAaSn8ySg9GR5\nBPjR0eTAWSTuZgr+uLTAK0lHtIwjPVqwXXfwPaWH2jD3hpBUCwiFfiYBcy3JTotO\newwCIp1WxD9HmDk8ZxnYXmq+FeE5rjoBdlHRwiMCgYB6diESMl2lAT1WV7DsjYyF\nJyu/+6aHS12MG7+hbSM63mIV10IDSi2tdwFG557rNFs/XtWUFeSTmQ8eGOlonmyC\nMzToFf4VvP49O1fvozPY4bZXLS/svkk7FzE8Ux5xxp90Ov4lK8jOHGnb3fyJtiy4\nG5uo14tfj1gY+ZoAdfekmw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "photobooth-uploader@photobox-sil.iam.gserviceaccount.com",
+  "client_id": "111560485925231286889",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/photobooth-uploader%40photobox-sil.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
