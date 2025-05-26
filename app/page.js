@@ -306,8 +306,8 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 selection:bg-blue-500 selection:text-white">
       <header className="mb-6 sm:mb-10 text-center">
-        <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 mb-2">Photobox Acara Seru!</h1>
-        <p className="text-lg sm:text-xl text-gray-600">Abadikan momen spesialmu dengan gaya!</p>
+        <h1 className="text-4xl sm:text-5xl font-bold text-gray-800 mb-2">Photobox SIL GBIKT 2025!</h1>
+        <p className="text-lg sm:text-xl text-gray-600">Abadikan momen spesialmu dengan penuh sukacita!</p>
       </header>
 
       <div className="w-full max-w-lg mx-auto">
@@ -320,7 +320,7 @@ export default function HomePage() {
               </div>
             )}
             <section id="template-selection">
-              <h2 className="text-2xl font-semibold mb-4 text-center text-gray-700">Pilih Template:</h2>
+              <h2 className="text-2xl font-semibold mb-4 text-center text-gray-700">Pilih Template Design:</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 {templates.map((template) => (
                   <div
@@ -344,7 +344,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-sm text-center mt-4 text-gray-600">
-                Terpilih:{" "}
+                Dipilih:{" "}
                 <span className="font-semibold text-gray-800">
                   {templates.find((t) => t.id === selectedTemplate)?.name}
                 </span>
@@ -460,9 +460,7 @@ export default function HomePage() {
       </div>
 
       <footer className="mt-8 sm:mt-12 text-center py-4">
-        <p className="text-sm text-gray-500">
-          &copy; {new Date().getFullYear()} Photobox Keren. Dibuat dengan Antusias!
-        </p>
+        <p className="text-sm text-gray-500">&copy; {new Date().getFullYear()} SIL GBIKT. All rights reserved.</p>
       </footer>
     </div>
   );
