@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 // Konfigurasi Sesi Foto
 const PRE_CAPTURE_COUNTDOWN = 3;
 const INTER_PHOTO_DELAY = 8;
-const TOTAL_PHOTOS = 2;
+// const activePhotoCount = 2;
 
 export default function HomePage() {
   // --- STATE MANAGEMENT ---
@@ -17,6 +17,7 @@ export default function HomePage() {
   const [countdown, setCountdown] = useState(0);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [cameraError, setCameraError] = useState(null);
+  const [activePhotoCount, setActivePhotoCount] = useState(2);
 
   // --- REFS ---
   const videoRef = useRef(null);
@@ -28,26 +29,40 @@ export default function HomePage() {
     {
       id: "template1",
       name: "Layout A",
-      previewUrl: "/templates/template1.png", // Pastikan file ada di public/templates/
-      description: "Size 6x2 Strip (2 Pose)",
+      previewUrl: "assets/template1.png", 
+      stripImageUrl: "assets/template1.png",
+      description: "template 1",
+      photoCount: 2,
+      photoAreas: [
+        { x: 50, y: 100, width: 200, height: 250 },
+        { x: 300, y: 150, width: 200, height: 250 }
+      ]
     },
     {
       id: "template2",
       name: "Layout B",
-      previewUrl: "/templates/template2.png", // Pastikan file ada di public/templates/
-      description: "Size 6x2 Strip (2 Pose)",
+      previewUrl: "assets/template2.png",
+      stripImageUrl: "assets/template2.png",
+      description: "Desain Vertikal Modern",
+      photoCount: 3,
+      photoAreas: [
+        { x: 70, y: 50, width: 250, height: 180 },
+        { x: 70, y: 300, width: 250, height: 180 },
+        { x: 70, y: 550, width: 250, height: 180 } 
+      ]
     },
+
   ];
 
   // --- FUNGSI-FUNGSI INTI ---
   const clearCountdownInterval = useCallback(() => {
-    /* ... (Logika sama seperti sebelumnya) ... */ if (countdownIntervalRef.current) {
+    if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
     }
   }, []);
   const startCamera = useCallback(async () => {
-    /* ... (Logika sama seperti sebelumnya) ... */ if (!videoRef.current) {
+    if (!videoRef.current) {
       setCameraError("Gagal menginisialisasi kamera.");
       setSessionState("error");
       return;
@@ -70,14 +85,14 @@ export default function HomePage() {
     }
   }, [setSessionState, setCameraError]);
   const stopCamera = useCallback(() => {
-    /* ... (Logika sama seperti sebelumnya) ... */ clearCountdownInterval();
+    clearCountdownInterval();
     if (videoRef.current && videoRef.current.srcObject) {
       videoRef.current.srcObject.getTracks().forEach((track) => track.stop());
       videoRef.current.srcObject = null;
     }
   }, [clearCountdownInterval]);
   const captureFrame = useCallback(() => {
-    /* ... (Logika sama seperti sebelumnya) ... */ if (photos.length >= TOTAL_PHOTOS) return;
+    if (photos.length >= activePhotoCount) return;
     if (videoRef.current && canvasRef.current) {
       const v = videoRef.current;
       const c = canvasRef.current;
@@ -108,7 +123,7 @@ export default function HomePage() {
   );
   const proceedToNextStep = useCallback(() => {
     /* ... (Logika sama seperti sebelumnya) ... */ clearCountdownInterval();
-    if (currentPhotoIndex < TOTAL_PHOTOS) {
+    if (currentPhotoIndex < activePhotoCount) {
       setSessionState("countdown_to_capture");
       setCountdown(PRE_CAPTURE_COUNTDOWN);
       countdownIntervalRef.current = setInterval(
@@ -126,7 +141,7 @@ export default function HomePage() {
       captureFrame();
       const newIdx = currentPhotoIndex + 1;
       setCurrentPhotoIndex(newIdx);
-      if (newIdx < TOTAL_PHOTOS) {
+      if (newIdx < activePhotoCount) {
         setSessionState("inter_photo_countdown");
         setCountdown(INTER_PHOTO_DELAY);
         countdownIntervalRef.current = setInterval(
@@ -155,7 +170,7 @@ export default function HomePage() {
         setSessionState("finished");
       }
     };
-    if (sessionState === "processing_server" && photos.length === TOTAL_PHOTOS) upload();
+    if (sessionState === "processing_server" && photos.length === activePhotoCount) upload();
   }, [sessionState, photos, selectedTemplate, processPhotosAndGetQR, stopCamera]);
 
   // --- FUNGSI HANDLER ---
@@ -163,7 +178,15 @@ export default function HomePage() {
     if (["idle", "finished", "error"].includes(sessionState)) setSessionState("template_strip_selection");
   };
   const handleTemplateStripSelect = (templateId) => {
+    const selected = templates.find(t => t.id === templateId);
+    if (!selected) return; // Jika template tidak ditemukan
+
+    console.log(`[Trigger] Template ${templateId} selected. Photos needed: ${selected.photoCount}`);
+    
     setSelectedTemplate(templateId);
+    setActivePhotoCount(selected.photoCount); // <-- ATUR JUMLAH FOTO AKTIF DI SINI
+
+    // Reset state lainnya untuk sesi baru
     setPhotos([]);
     setCurrentPhotoIndex(0);
     setCameraError(null);
@@ -171,6 +194,7 @@ export default function HomePage() {
     setQrCodeUrl("");
     setSessionState("starting_camera");
   };
+
   const resetSession = useCallback(() => {
     stopCamera();
     setSessionState("idle");
@@ -218,15 +242,37 @@ export default function HomePage() {
 
       <main className="flex-grow flex flex-col items-center justify-center w-full max-w-screen-lg">
         {sessionState === "idle" && !qrCodeUrl && (
-          <div className="text-center animate-fadeInUp">
-            <h2 className="text-6xl font-extrabold mb-4 text-pink-500">Photobooth</h2>
-            <p className="mb-8 text-lg text-gray-600">Keluarga ku, Rumah ku: Abadikan Kehangatan Kita.</p>
-            <button
-              onClick={handleStartPhotoSession}
-              className="bg-pink-500 hover:bg-pink-600 text-white font-bold py-3 px-10 rounded-full text-lg shadow-lg transition-transform transform hover:scale-105"
-            >
-              MULAI
-            </button>
+          <div className="relative text-center flex flex-col items-center justify-center w-full h-full animate-fadeInUp">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                <div className="w-64 h-64 sm:w-80 sm:h-80 bg-pink-300/30 rounded-full blur-3xl animate-pulse"></div>
+            </div>
+            <div className="relative z-10 flex flex-col items-center">
+                <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-4">
+                    <span className="text-xs sm:text-sm font-medium text-pink-500 tracking-wider">SIL</span>
+                    <h2 className="text-5xl sm:text-7xl md:text-8xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">
+                    keluargaku, rumahku
+                    </h2>
+                    <span className="text-xs sm:text-sm font-medium text-pink-500 tracking-wider">2025</span>
+                </div>
+                <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-10 max-w-xs sm:max-w-sm text-center">
+                  Keluarga ku, Rumah ku: Tempat Tawa Menggema, Kasih Bersemi, Kenangan Tercipta.
+                </p>
+                 <div className="bg-white/70 backdrop-blur-md p-3 rounded-lg shadow-md text-xs text-gray-700 mb-8 max-w-sm text-left relative">
+                    <span className="absolute -top-3 -left-3 bg-white p-1.5 rounded-full transform -rotate-12 shadow-md">
+                      <span className="text-xl">📸</span>
+                    </span>
+                    <p className="text-sm text-center">Tekan tombol START, pilih desain strip, dan abadikan momen seru!</p>
+                </div>
+                <button
+                    onClick={handleStartPhotoSession}
+                    className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3 sm:py-4 px-10 sm:px-16 rounded-full text-lg sm:text-xl shadow-lg transform transition-all duration-300 ease-in-out hover:scale-105 focus:outline-none focus:ring-4 focus:ring-pink-300"
+                >
+                    MULAI
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 inline-block ml-2">
+                        <path fillRule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clipRule="evenodd" />
+                    </svg>
+                </button>
+            </div>
           </div>
         )}
 
@@ -323,7 +369,7 @@ export default function HomePage() {
                   <>
                     <p className="text-2xl sm:text-3xl font-bold h-10">{statusText}</p>
                     <p className="text-md text-gray-600">
-                      Foto {currentPhotoIndex < TOTAL_PHOTOS ? currentPhotoIndex + 1 : TOTAL_PHOTOS} dari {TOTAL_PHOTOS}
+                      Foto {currentPhotoIndex < activePhotoCount ? currentPhotoIndex + 1 : activePhotoCount} dari {activePhotoCount}
                     </p>
                     {sessionState !== "capturing" && sessionState !== "countdown_to_capture" && (
                       <button
